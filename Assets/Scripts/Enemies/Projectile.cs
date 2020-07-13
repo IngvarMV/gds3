@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System.Runtime.CompilerServices;
+using UnityEngine;
 
 public class Projectile : MonoBehaviour
 {
@@ -30,6 +31,18 @@ public class Projectile : MonoBehaviour
     private void OnCollisionEnter(Collision collision)
     {
         Destroy();
+    }
+
+    private void OnTriggerEnter(Collider other)
+    {
+        if(other.CompareTag("Weapon"))
+        {
+            if (other.gameObject.GetComponent<Weapon>().IsInSweetSpot(transform.position))
+            {
+                Reflect();
+                return;
+            }
+        }
     }
 
     private void Start()

@@ -5,6 +5,11 @@ TagManager:
   serializedVersion: 2
   tags:
   - Projectile
+  - Lens
+  - Detector
+  - Elevator
+  - Terminal
+  - Weapon
   layers:
   - Default
   - TransparentFX
@@ -18,10 +23,10 @@ TagManager:
   - Projectiles
   - Player
   - Enemies
-  - 
-  - 
-  - 
-  - 
+  - Lens
+  - Terminal
+  - Weapon
+  - Interactables
   - 
   - 
   - 

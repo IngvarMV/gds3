@@ -1,6 +1,8 @@
 ﻿using System.Collections;
+using UnityEditor.ShaderGraph.Internal;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.SceneManagement;
 
 #region Player States
 public enum PlayerState
@@ -8,7 +10,14 @@ public enum PlayerState
     Moving,
     Dashing,
     Attacking,
-    ReceivedDamage
+    ReceivedDamage,
+    FailedToFlip
+}
+
+public enum AttackType
+{
+    High,
+    Low
 }
 
 public class PlayerMoving : BaseState
@@ -25,43 +34,47 @@ public class PlayerMoving : BaseState
     {
         player.Controls.Player.GravitySwitch.performed += GravitySwitch;
         player.Controls.Player.Dash.performed += Dash;
-        player.Controls.Player.Attack.performed += Attack;
-        player.Controls.Player.Block.performed += Block;
-        player.Controls.Player.Block.canceled += LeavingBlock;
+        player.Controls.Player.AttackHigh.performed += player.AttackHigh;
+        player.Controls.Player.AttackLow.performed += player.AttackLow;
+        //player.Controls.Player.Block.performed += Block;
+        //player.Controls.Player.Block.canceled += LeavingBlock;
+
+        player.Weapon.SetIdle();
     }
 
     public override void onExit()
     {
         player.Controls.Player.GravitySwitch.performed -= GravitySwitch;
         player.Controls.Player.Dash.performed -= Dash;
-        player.Controls.Player.Attack.performed -= Attack;
-        player.Controls.Player.Block.performed -= Block;
-        player.Controls.Player.Block.canceled -= LeavingBlock;
+        player.Controls.Player.AttackHigh.performed -= player.AttackHigh;
+        player.Controls.Player.AttackLow.performed -= player.AttackLow;
+        //player.Controls.Player.Block.performed -= Block;
+        //player.Controls.Player.Block.canceled -= LeavingBlock;
 
-        player.Weapon.SetIdle();
-        player.Blocking = false;
+        //player.Weapon.SetIdle();
+        //player.Blocking = false;
         speedModifier = 1.0f;
     }
 
     public override void onUpdate(float deltaTime)
     {
-        if (player.Blocking)
-        {
-            speedModifier = player.BlockSpeedModifier;
-            if (player.Aim >= 0.0f)
-            {
-                player.Weapon.SetUpper();
-            }
-            else
-            {
-                player.Weapon.SetBottom();
-            }
-        }
-        else
-        {
-            player.Weapon.SetIdle();
-            speedModifier = 1.0f;
-        }
+        //if (player.Blocking)
+        //{
+        //    speedModifier = player.BlockSpeedModifier;
+        //    if (player.Aim >= 0.0f)
+        //    {
+        //        player.Weapon.SetUpper();
+        //    }
+        //    else
+        //    {
+        //        player.Weapon.SetBottom();
+        //    }
+        //}
+        //else
+        //{
+        //    player.Weapon.SetIdle();
+        //    speedModifier = 1.0f;
+        //}
     }
 
     public override void onFixedUpdate(float deltaTime)
@@ -81,9 +94,14 @@ public class PlayerMoving : BaseState
 
     private void GravitySwitch(InputAction.CallbackContext ctx)
     {
-        if(player.CanSwitch)
+        var isTouchingGround = player.IsTouchingGround;
+        if (isTouchingGround && player.CanSwitch)
         {
             player.Flip();
+        }
+        else if (isTouchingGround)
+        {
+            player.StateMachine.ChangeState(PlayerState.FailedToFlip);
         }
     }
 
@@ -96,41 +114,33 @@ public class PlayerMoving : BaseState
         }
     }
 
-    private void Attack(InputAction.CallbackContext ctx)
-    {
-        if (player.WeaponEquipped)
-        {
-            player.StateMachine.ChangeState(PlayerState.Attacking);
-        }
-    }
+    //private void Block(InputAction.CallbackContext ctx)
+    //{
+    //    player.Blocking = true;
 
-    private void Block(InputAction.CallbackContext ctx)
-    {
-        player.Blocking = true;
+    //    var zoneSize = player.Aim >= 0.0f ? player.UpperBlockZoneSize : player.BottomBlockZoneSize;
+    //    var projectiles =
+    //        Physics.OverlapBox(
+    //            player.transform.position + new Vector3(Mathf.Sign(player.transform.right.x) * player.FacingDirection * (zoneSize.x + (player.SweetSpotWidth) / 2),
+    //                                                    Mathf.Sign(player.Aim) * zoneSize.y / 2),
+    //            new Vector3(player.SweetSpotWidth / 2, zoneSize.y / 2, 0.5f),
+    //            player.transform.rotation,
+    //            LayerMask.GetMask("Projectiles")
+    //        );
 
-        var zoneSize = player.Aim >= 0.0f ? player.UpperBlockZoneSize : player.BottomBlockZoneSize;
-        var projectiles =
-            Physics.OverlapBox(
-                player.transform.position + new Vector3(Mathf.Sign(player.transform.right.x) * player.FacingDirection * (zoneSize.x + (player.SweetSpotWidth) / 2),
-                                                        Mathf.Sign(player.Aim) * zoneSize.y / 2),
-                new Vector3(player.SweetSpotWidth / 2, zoneSize.y / 2, 0.5f),
-                player.transform.rotation,
-                LayerMask.GetMask("Projectiles")
-            );
+    //    foreach (var proj in projectiles)
+    //    {
+    //        proj.SendMessage("Reflect");
+    //    }
+    //}
 
-        foreach (var proj in projectiles)
-        {
-            proj.SendMessage("Reflect");
-        }
-    }
-
-    private void LeavingBlock(InputAction.CallbackContext ctx)
-    {
-        if (player.Blocking)
-        {
-            player.Blocking = false;
-        }
-    }
+    //private void LeavingBlock(InputAction.CallbackContext ctx)
+    //{
+    //    if (player.Blocking)
+    //    {
+    //        player.Blocking = false;
+    //    }
+    //}
 }
 
 public class PlayerDashing : BaseState
@@ -145,16 +155,18 @@ public class PlayerDashing : BaseState
 
     public override void onInit(params object[] args)
     {
-        player.Controls.Player.Attack.performed += Attack;
-        player.Controls.Player.Block.performed += Block;
+        player.Controls.Player.AttackHigh.performed += player.AttackHigh;
+        player.Controls.Player.AttackLow.performed += player.AttackLow;
+        //player.Controls.Player.Block.performed += Block;
 
         dashTimeElapsed = 0.0f;
     }
 
     public override void onExit()
     {
-        player.Controls.Player.Attack.performed -= Attack;
-        player.Controls.Player.Block.performed -= Block;
+        player.Controls.Player.AttackHigh.performed -= player.AttackHigh;
+        player.Controls.Player.AttackLow.performed -= player.AttackLow;
+        //player.Controls.Player.Block.performed -= Block;
 
         player.DashCooldownElapsed = 0.0f;
     }
@@ -173,19 +185,11 @@ public class PlayerDashing : BaseState
         dashTimeElapsed += deltaTime;
     }
 
-    private void Attack(InputAction.CallbackContext ctx)
-    {
-        if (player.WeaponEquipped)
-        {
-            player.StateMachine.ChangeState(PlayerState.Attacking);
-        }
-    }
-
-    private void Block(InputAction.CallbackContext ctx)
-    {
-        player.Blocking = true;
-        player.StateMachine.ChangeState(PlayerState.Moving);
-    }
+    //private void Block(InputAction.CallbackContext ctx)
+    //{
+    //    player.Blocking = true;
+    //    player.StateMachine.ChangeState(PlayerState.Moving);
+    //}
 }
 
 public class PlayerAttacking : BaseState
@@ -205,20 +209,32 @@ public class PlayerAttacking : BaseState
 
         attackTimeElapsed = 0.0f;
 
-        Collider[] hitObjects = GetHitObjects(player.Aim >= 0.0f ? player.UpperBlockZoneSize : player.BottomBlockZoneSize);
-        foreach (var obj in hitObjects)
+        var attackType = (AttackType) args[0];
+        if(attackType == AttackType.High)
         {
-            obj.SendMessage("ReceivedDamage");
+            player.Weapon.GetComponent<Animator>().Play("Attack_High");
+        }
+        else if (attackType == AttackType.Low)
+        {
+            player.Weapon.GetComponent<Animator>().Play("Attack_Low");
         }
 
-        if (player.Aim >= 0.0f)
-        {
-            player.Weapon.SetUpper();
-        }
-        else
-        {
-            player.Weapon.SetBottom();
-        }
+        player.Weapon.EnableCollision();
+
+        //Collider[] hitObjects = GetHitObjects(player.Aim >= 0.0f ? player.UpperBlockZoneSize : player.BottomBlockZoneSize);
+        //foreach (var obj in hitObjects)
+        //{
+        //    obj.SendMessage("ReceivedDamage");
+        //}
+
+        //if (player.Aim >= 0.0f)
+        //{
+        //    player.Weapon.SetUpper();
+        //}
+        //else
+        //{
+        //    player.Weapon.SetBottom();
+        //}
     }
 
     public override void onExit()
@@ -226,6 +242,7 @@ public class PlayerAttacking : BaseState
         player.Controls.Player.GravitySwitch.performed -= GravitySwitch;
         player.Controls.Player.Dash.performed -= Dash;
 
+        player.Weapon.DisableCollision();
         player.Weapon.SetIdle();
     }
 
@@ -243,15 +260,15 @@ public class PlayerAttacking : BaseState
         attackTimeElapsed += deltaTime;
     }
 
-    private Collider[] GetHitObjects(Vector2 zoneSize)
-    {
-        return Physics.OverlapBox(
-                    player.transform.position + new Vector3(player.FacingDirection * zoneSize.x / 2, Mathf.Sign(player.Aim) * zoneSize.y / 2),
-                    new Vector3(zoneSize.x / 2, zoneSize.y / 2, 0.5f),
-                    player.transform.rotation,
-                    LayerMask.GetMask("Enemies")
-                    );
-    }
+    //private Collider[] GetHitObjects(Vector2 zoneSize)
+    //{
+    //    return Physics.OverlapBox(
+    //                player.transform.position + new Vector3(player.FacingDirection * zoneSize.x / 2, Mathf.Sign(player.Aim) * zoneSize.y / 2),
+    //                new Vector3(zoneSize.x / 2, zoneSize.y / 2, 0.5f),
+    //                player.transform.rotation,
+    //                LayerMask.GetMask("Enemies")
+    //                );
+    //}
 
     private void GravitySwitch(InputAction.CallbackContext ctx)
     {
@@ -287,6 +304,8 @@ public class PlayerReceivedDamage : BaseState
     {
         damageCooldownElapsed = 0.0f;
         impactDirection = (float) args[0];
+
+        player.DecreaseHealth(1);
     }
 
     public override void onUpdate(float deltaTime)
@@ -303,22 +322,44 @@ public class PlayerReceivedDamage : BaseState
         damageCooldownElapsed += deltaTime;
     }
 }
+
+public class PlayerFailedToFlip : BaseState
+{
+    private Player player = null;
+
+    public PlayerFailedToFlip(Player p)
+    {
+        player = p;
+    }
+
+    public override void onInit(params object[] args)
+    {
+        player.Animator.Play("SwitchFailed");
+    }
+
+    public override void onExit()
+    {
+        player.Animator.Rebind();
+    }
+}
 #endregion
 
 public class Player : MonoBehaviour
 {
     #region Settings
     public PlayerSettings settings;
+    public int Health { get => settings.health; }
     public float Speed { get => settings.speed; }
     public float GravitySpeed { get => settings.gravitySpeed; }
-    public float BlockSpeedModifier { get => settings.blockSpeedModifier; }
+    //public float BlockSpeedModifier { get => settings.blockSpeedModifier; }
     public float DashSpeed { get => settings.dashSpeed; }
     public float DashTime { get => settings.dashTime; }
     public float DashCooldown { get => settings.dashCooldown; }
     public float AttackDuration { get => settings.attackDuration; }
-    public Vector2 UpperBlockZoneSize { get => settings.upperBlockZoneSize; }
-    public Vector2 BottomBlockZoneSize { get => settings.bottomBlockZoneSize; }
-    public float SweetSpotWidth { get => settings.sweetSpotWidth; }
+    //public Vector2 UpperBlockZoneSize { get => settings.upperBlockZoneSize; }
+    //public Vector2 BottomBlockZoneSize { get => settings.bottomBlockZoneSize; }
+    //public float SweetSpotWidth { get => settings.sweetSpotWidth; }
+    public float GravitySwitchHeight { get => settings.gravitySwitchHeight; }
     #endregion
 
     #region Outside References
@@ -334,42 +375,62 @@ public class Player : MonoBehaviour
 
     #region Private Fields 
     private Vector2 _aim = Vector2.zero;
+    private Interactable _heldObject = null;
+    private int _currentHealth = 0;
     #endregion
 
     #region Properties
     public MainControls Controls { get; private set; } = null;
     public StateMachine<PlayerState> StateMachine { get; private set; } = new StateMachine<PlayerState>();
+    public Animator Animator { get; private set; } = null;
     private Vector3 GravityVelocity { get; set; } = Vector3.zero;
-    public bool Blocking { get; set; } = false;
-    public bool CanSwitch { get; set; } = false;
+    //public bool Blocking { get; set; } = false;
     public bool WeaponEquipped { get; set; } = true;
     public bool CanDash { get => DashCooldownElapsed > DashCooldown; }
     public float FacingDirection { get; set; } = 1.0f;
     public float DashCooldownElapsed { get; set; } = 0.0f;
-
-    public float Aim { get => _aim.y * transform.up.y; }
-
-    public Bounds UpperBlockAreaBounds
+    public bool IsHoldingObject { get => _heldObject != null; }
+    public int CurrentHealth { get => _currentHealth; }
+    public bool IsTouchingGround
     {
-        get =>
-            new Bounds(
-                transform.position + new Vector3(
-                    Mathf.Sign(transform.right.x) * FacingDirection * UpperBlockZoneSize.x / 2,
-                    Mathf.Sign(Aim) * UpperBlockZoneSize.y / 2
-                    ),
-                new Vector3(UpperBlockZoneSize.x, UpperBlockZoneSize.y, 0.5f));
+        get
+        {
+            RaycastHit hit;
+            return Physics.Raycast(transform.position, -transform.up, out hit, 1.0f, 1 << 8);
+        }
+    }
+    public bool CanSwitch
+    {
+        get
+        {
+            RaycastHit hit;
+            return Physics.Raycast(Parent.position, Parent.up, out hit, GravitySwitchHeight, 1 << 8);
+        }
     }
 
-    public Bounds BottomBlockAreaBounds
-    {
-        get =>
-              new Bounds(
-                  transform.position + new Vector3(
-                      Mathf.Sign(transform.right.x) * FacingDirection * BottomBlockZoneSize.x / 2,
-                      Mathf.Sign(Aim) * BottomBlockZoneSize.y / 2
-                      ),
-                  new Vector3(BottomBlockZoneSize.x, BottomBlockZoneSize.y, 0.5f));
-    }
+    //public float Aim { get => _aim.y * transform.up.y; }
+
+    //public Bounds UpperBlockAreaBounds
+    //{
+    //    get =>
+    //        new Bounds(
+    //            transform.position + new Vector3(
+    //                Mathf.Sign(transform.right.x) * FacingDirection * UpperBlockZoneSize.x / 2,
+    //                Mathf.Sign(Aim) * UpperBlockZoneSize.y / 2
+    //                ),
+    //            new Vector3(UpperBlockZoneSize.x, UpperBlockZoneSize.y, 0.5f));
+    //}
+
+    //public Bounds BottomBlockAreaBounds
+    //{
+    //    get =>
+    //          new Bounds(
+    //              transform.position + new Vector3(
+    //                  Mathf.Sign(transform.right.x) * FacingDirection * BottomBlockZoneSize.x / 2,
+    //                  Mathf.Sign(Aim) * BottomBlockZoneSize.y / 2
+    //                  ),
+    //              new Vector3(BottomBlockZoneSize.x, BottomBlockZoneSize.y, 0.5f));
+    //}
     #endregion
 
     public void Move(Vector3 dir, float deltaTime)
@@ -378,18 +439,25 @@ public class Player : MonoBehaviour
         //vertical movement
         if (Physics.Raycast(transform.position, -transform.up, out hit, 1.0f, 1 << 8))
         {
+            if (hit.collider.CompareTag("Elevator"))
+            {
+                _parent.transform.parent = hit.collider.transform;
+            }
+            else
+            {
+                _parent.transform.parent = null;
+            }
+
             //Debug.DrawRay(hit.point, hit.normal, Color.red);
             _parent.position = hit.point;
             _parent.rotation = Quaternion.FromToRotation(transform.up, hit.normal) * transform.rotation;
             GravityVelocity = Vector3.zero;
-            CanSwitch = true;
         }
         else
         {
             //TODO: change state to falling
             GravityVelocity += -_parent.up * GravitySpeed * deltaTime;
             _parent.position += GravityVelocity * deltaTime;
-            CanSwitch = false;
         }
 
         if (Mathf.Abs(dir.x) > 0.0f + Mathf.Epsilon)
@@ -414,26 +482,80 @@ public class Player : MonoBehaviour
         ); ;
     }
 
+    public void DecreaseHealth(int healthAmount)
+    {
+        _currentHealth -= healthAmount;
+        if (_currentHealth <= 0)
+        {
+            SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+        }
+    }
+
+    public void AttackHigh(InputAction.CallbackContext ctx)
+    {
+        if (WeaponEquipped)
+        {
+            StateMachine.ChangeState(PlayerState.Attacking, AttackType.High);
+        }
+    }
+
+    public void AttackLow(InputAction.CallbackContext ctx)
+    {
+        if (WeaponEquipped)
+        {
+            StateMachine.ChangeState(PlayerState.Attacking, AttackType.Low);
+        }
+    }
+
     #region Mono behaviour methods
     void Start()
     {
         Controls = new MainControls();
+        Animator = GetComponent<Animator>();
 
         StateMachine.AddState(PlayerState.Moving, new PlayerMoving(this));
         StateMachine.AddState(PlayerState.Dashing, new PlayerDashing(this));
         StateMachine.AddState(PlayerState.Attacking, new PlayerAttacking(this));
         StateMachine.AddState(PlayerState.ReceivedDamage, new PlayerReceivedDamage(this));
+        StateMachine.AddState(PlayerState.FailedToFlip, new PlayerFailedToFlip(this));
         StateMachine.ChangeState(PlayerState.Moving);
+
+        _currentHealth = Health;
 
         Controls.Enable();
     }
 
     void Update()
     {
-        _aim = Controls.Player.Aim.ReadValue<Vector2>();
+        //_aim = Controls.Player.Aim.ReadValue<Vector2>();
 
         DashCooldownElapsed += Time.deltaTime;
         StateMachine.OnUpdate(Time.deltaTime);
+
+        if (Controls.Player.Interact.triggered)
+        {
+            //todo: this is temporary garbage, requires refactoring
+            if (_heldObject == null)
+            {
+                var objects = Physics.OverlapSphere(transform.position, 0.5f, LayerMask.GetMask("Lens"));
+                if (objects.Length > 0)
+                {
+                    _heldObject = objects[0].gameObject.GetComponent<Interactable>();
+                    _heldObject.OnInteractionStart();
+                }
+
+                foreach(var obj in Physics.OverlapSphere(transform.position, 0.5f, LayerMask.GetMask("Terminal")))
+                {
+                    obj.gameObject.SendMessage("Activate");
+                }
+            }
+            else
+            {
+                _heldObject.OnInteractionEnd();
+                _heldObject.transform.position = new Vector3(transform.position.x, transform.position.y, _heldObject.transform.position.z);
+                _heldObject = null;
+            }
+        }
     }
 
     void FixedUpdate()
@@ -445,18 +567,28 @@ public class Player : MonoBehaviour
     {
         if(collision.collider.CompareTag("Projectile"))
         {
-            if(Blocking)
-            {
-                if (collision.collider.bounds.Intersects(Aim >= 0.0f ? UpperBlockAreaBounds : BottomBlockAreaBounds))
-                {
-                    collision.collider.SendMessage("Destroy");
-                    return;
-                }
-            }
+            //if(Blocking)
+            //{
+            //    if (collision.collider.bounds.Intersects(Aim >= 0.0f ? UpperBlockAreaBounds : BottomBlockAreaBounds))
+            //    {
+            //        collision.collider.SendMessage("Destroy");
+            //        return;
+            //    }
+            //}
 
             StateMachine.ChangeState(PlayerState.ReceivedDamage,
                 collision.gameObject.GetComponent<Projectile>().Dir.x);
         }
+    }
+
+    void OnLaserHit()
+    {
+        DecreaseHealth(100);
+    }
+
+    void OnSwitchFailEnd()
+    {
+        StateMachine.ChangeState(PlayerState.Moving);
     }
 
 #if !UNITY_EDITOR

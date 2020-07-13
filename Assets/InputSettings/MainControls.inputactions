@@ -38,15 +38,7 @@
                     "interactions": ""
                 },
                 {
-                    "name": "Aim",
-                    "type": "Value",
-                    "id": "f9cd17ff-31c5-466d-b409-f9ca30e3c249",
-                    "expectedControlType": "",
-                    "processors": "",
-                    "interactions": ""
-                },
-                {
-                    "name": "Attack",
+                    "name": "AttackHigh",
                     "type": "Button",
                     "id": "3410a797-60ff-4219-afa5-63bfee8fcc71",
                     "expectedControlType": "Button",
@@ -54,9 +46,17 @@
                     "interactions": ""
                 },
                 {
-                    "name": "Block",
+                    "name": "AttackLow",
                     "type": "Button",
                     "id": "2cb10a96-e2e1-4873-8440-6df4b4a60728",
+                    "expectedControlType": "Button",
+                    "processors": "",
+                    "interactions": ""
+                },
+                {
+                    "name": "Interact",
+                    "type": "Button",
+                    "id": "013137e2-3518-4a4b-90eb-1ce34e8d1886",
                     "expectedControlType": "Button",
                     "processors": "",
                     "interactions": ""
@@ -231,7 +231,7 @@
                 {
                     "name": "",
                     "id": "8df2fe41-bb98-48e4-b050-8b68c77672ed",
-                    "path": "<Gamepad>/buttonSouth",
+                    "path": "<XInputController>/rightShoulder",
                     "interactions": "",
                     "processors": "",
                     "groups": "Gamepad",
@@ -253,7 +253,7 @@
                 {
                     "name": "",
                     "id": "070465cc-d943-4348-a886-b514e2d937c1",
-                    "path": "<Gamepad>/buttonEast",
+                    "path": "<XInputController>/buttonEast",
                     "interactions": "",
                     "processors": "",
                     "groups": "Gamepad",
@@ -263,34 +263,67 @@
                 },
                 {
                     "name": "",
-                    "id": "830cece0-3b0c-4fc4-97b6-2b7e679ad25b",
-                    "path": "<Gamepad>/rightStick",
+                    "id": "138d8183-a2fe-4c04-91db-8d9e803da550",
+                    "path": "<XInputController>/buttonNorth",
+                    "interactions": "Hold(duration=0.1,pressPoint=0.1)",
+                    "processors": "",
+                    "groups": "Gamepad",
+                    "action": "AttackHigh",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "7f7ee4b0-39cc-4cc5-9d1f-d6a4d10ac46e",
+                    "path": "<Mouse>/leftButton",
                     "interactions": "",
                     "processors": "",
                     "groups": "Gamepad",
-                    "action": "Aim",
+                    "action": "AttackHigh",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },
                 {
                     "name": "",
-                    "id": "138d8183-a2fe-4c04-91db-8d9e803da550",
-                    "path": "<Gamepad>/rightTrigger",
+                    "id": "63cc610b-36f2-4a96-a6bd-49160659d1c6",
+                    "path": "<XInputController>/buttonWest",
                     "interactions": "Hold(duration=0.1,pressPoint=0.1)",
                     "processors": "",
                     "groups": "Gamepad",
-                    "action": "Attack",
+                    "action": "AttackLow",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },
                 {
                     "name": "",
-                    "id": "f6259951-35b4-4b0a-a3de-44226ddeaeea",
-                    "path": "<Gamepad>/leftTrigger",
-                    "interactions": "Hold(duration=0.1,pressPoint=0.1)",
+                    "id": "4032b819-8349-4d76-ab24-207e2258bf52",
+                    "path": "<Mouse>/rightButton",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "Keyboard",
+                    "action": "AttackLow",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "75222ac7-711a-4b69-b4a1-aa6bfb6ce133",
+                    "path": "<Keyboard>/e",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "Keyboard",
+                    "action": "Interact",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "bb5dd53f-14b9-4670-9503-3358193b3d78",
+                    "path": "<XInputController>/buttonSouth",
+                    "interactions": "",
                     "processors": "",
                     "groups": "Gamepad",
-                    "action": "Block",
+                    "action": "Interact",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }
